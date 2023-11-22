@@ -16,6 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include QMK_KEYBOARD_H
+#ifdef POINTING_DEVICE_ENABLE
+#include <stdlib.h>
+#endif
 
 enum layers
 {
@@ -237,6 +240,29 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         mouse_report.y = 0;
     }
     return mouse_report;
+}
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    uint8_t brightness = (uint8_t)(rand() % 255);
+
+    switch (get_highest_layer(layer_state)) {
+        case _HALMAK:
+            pimoroni_trackball_set_rgbw(0, 0, 0, brightness);
+            break;
+        case _LOWER:
+            pimoroni_trackball_set_rgbw(0, brightness, 0, 0);
+            break;
+        case _RAISE:
+            pimoroni_trackball_set_rgbw(0, 0, brightness, 0);
+            break;
+        case _SUPER:
+            pimoroni_trackball_set_rgbw(brightness, brightness, 0, 0);
+            break;
+        case _FUNCTION:
+            pimoroni_trackball_set_rgbw(brightness, 0, 0, 0);
+            break;
+    }
+    return true;
 }
 
 void keyboard_post_init_user(void) {
