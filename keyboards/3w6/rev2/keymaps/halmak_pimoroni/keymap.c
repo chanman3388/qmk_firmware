@@ -210,7 +210,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
             set_scrolling = false;
             break;
         case _FUNCTION:
-            pimoroni_trackball_set_rgbw(0, 255, 255, 127);
+            pimoroni_trackball_set_rgbw(255, 0, 0, 127);
             set_scrolling = false;
             break;
         }
