@@ -153,15 +153,15 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_LOWER] = LAYOUT(
         KC_1,                   KC_2,               KC_3,            KC_4,              KC_5,               S(KC_1),            S(KC_2),        S(KC_3),        S(KC_4),        S(KC_5),
-        KC_6,                   KC_7,               KC_8,            KC_9,              KC_0,               S(KC_6),            S(KC_7),        S(KC_8),        KC_QUOT,        KC_NUHS,
+        KC_6,                   KC_7,               KC_8,            KC_9,              KC_0,               S(KC_6),            S(KC_7),        S(KC_8),        KC_QUOT,        KC_BSPC,
         KC_GRV,                 KC_NUBS,            KC_MINS,         KC_EQL,            KC_NUHS,            S(KC_NUHS),         S(KC_EQL),      S(KC_MINS),     S(KC_NUBS),     KC_DEL,
                                                     KC_TRNS,         KC_TRNS,           KC_TRNS,            KC_TRNS,            KC_TRNS,        XXXXXXX
     ),
 
     [_RAISE] = LAYOUT(
         KC_ESC,                 XXXXXXX,            KC_LBRC,         KC_RBRC,           XXXXXXX,            KC_QUOT,            KC_UP,          S(KC_QUOT),     KC_HOME,     KC_PGUP,
-        XXXXXXX,                XXXXXXX,            S(KC_9),         S(KC_0),           RALT(KC_4),         KC_LEFT,            KC_DOWN,        KC_RIGHT,       KC_END,      KC_PGDN,
-        KC_TAB,                 XXXXXXX,            S(KC_LBRC),      S(KC_RBRC),        XXXXXXX,            XXXXXXX,            XXXXXXX,        XXXXXXX,        XXXXXXX,     KC_BSPC,
+        KC_TAB,                 XXXXXXX,            S(KC_9),         S(KC_0),           RALT(KC_4),         KC_LEFT,            KC_DOWN,        KC_RIGHT,       KC_END,      KC_PGDN,
+        XXXXXXX,                XXXXXXX,            S(KC_LBRC),      S(KC_RBRC),        XXXXXXX,            XXXXXXX,            XXXXXXX,        XXXXXXX,        XXXXXXX,     XXXXXXX,
                                                     KC_TRNS,         KC_TRNS,           KC_TRNS,            KC_TRNS,            KC_TRNS,        XXXXXXX
     ),
 
@@ -180,29 +180,67 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 };
 
-#ifdef POINTING_DEVICE_DRIVER
+#ifdef POINTING_DEVICE_ENABLE
 
-uint32_t layer_state_set_user(uint32_t state) {
-    switch (biton32(state)) {
+bool set_scrolling = false;
+// Modify these values to adjust the scrolling speed
+#define SCROLL_DIVISOR_H 8.0
+#define SCROLL_DIVISOR_V 8.0
+
+// Variables to store accumulated scroll values
+float scroll_accumulated_h = 0;
+float scroll_accumulated_v = 0;
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+    switch (get_highest_layer(state)) {
         case _HALMAK:
             pimoroni_trackball_set_rgbw(0, 0, 0, 255);
-        case _RAISE:
-            pimoroni_trackball_set_rgbw(255, 0, 0, 127);
+            set_scrolling = false;
             break;
         case _LOWER:
             pimoroni_trackball_set_rgbw(0, 255, 0, 127);
+            set_scrolling = true;
             break;
         case _RAISE:
             pimoroni_trackball_set_rgbw(0, 0, 255, 127);
+            set_scrolling = false;
             break;
         case _SUPER:
             pimoroni_trackball_set_rgbw(255, 255, 0, 127);
+            set_scrolling = false;
             break;
         case _FUNCTION:
             pimoroni_trackball_set_rgbw(0, 255, 255, 127);
+            set_scrolling = false;
             break;
         }
     return state;
+}
+
+
+report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
+    if (set_scrolling) {
+        // Calculate and accumulate scroll values based on mouse movement and divisors
+        scroll_accumulated_h += (float)mouse_report.x / SCROLL_DIVISOR_H;
+        scroll_accumulated_v += (float)mouse_report.y / SCROLL_DIVISOR_V;
+
+        // Assign integer parts of accumulated scroll values to the mouse report
+        mouse_report.h = (int8_t)scroll_accumulated_h;
+        mouse_report.v = (int8_t)scroll_accumulated_v;
+
+        // Update accumulated scroll values by subtracting the integer parts
+        scroll_accumulated_h -= (int8_t)scroll_accumulated_h;
+        scroll_accumulated_v -= (int8_t)scroll_accumulated_v;
+
+        // Clear the X and Y values of the mouse report
+        mouse_report.x = 0;
+        mouse_report.y = 0;
+    }
+    return mouse_report;
+}
+
+void keyboard_post_init_user(void) {
+    pimoroni_trackball_set_rgbw(0, 0, 0, 255);
 }
 
 #endif
