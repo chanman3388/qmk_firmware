@@ -27,4 +27,4 @@
 	branch = release/v8.2
 [submodule "keyboards/chanman3388"]
 	path = keyboards/chanman3388
-	url = git@github.com:chanman3388/qmk-keyboard-firmware.git
+	url = ../qmk-keyboard-firmware
